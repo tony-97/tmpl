@@ -1,6 +1,7 @@
 #pragma once
 
 #include "tmpl.hpp"
+#include "type_list.hpp"
 
 #include <type_traits>
 #include <utility>
@@ -92,7 +93,7 @@ template<template <class...> class Seq1_t, class... Ts,
          template <class...> class Seq2_t, class... Us>
 struct SeqCatIMPL<Seq1_t<Ts...>, Seq2_t<Us...>>
 {
-    using type = TypeList_t<Ts..., Us...>;
+    using type = TMPL::TypeList_t<Ts..., Us...>;
 };
 
 template<class Seq1_t, class Seq2_t>
