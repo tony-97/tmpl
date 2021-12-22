@@ -1,141 +1,145 @@
 #pragma once
 
+#include "tmpl.hpp"
+
 #include <type_traits>
 #include <utility>
 
-namespace TMP
+namespace TMPL
 {
 
 template<class... Args_t>
 struct TypeList_t {  };
 
+namespace Sequence
+{
+
 ///////////////////////////////////////////////////////////////////////////////
 // Type at index
 ///////////////////////////////////////////////////////////////////////////////
 
-template<std::size_t I, class Sequence_t>
+template<std::size_t I, class Seq_t>
 struct TypeAt;
 
-template<std::size_t I,
-         template<class...> class Sequence_t,
-         class Head_t,
-         class... Tail_t>
-struct TypeAt<I, Sequence_t<Head_t, Tail_t...>>
-: TypeAt<I - 1, class Sequence_t<Tail_t...>>
-{  };
+template<std::size_t I, template<class...> class Seq_t, class... Ts>
+struct TypeAt<I, Seq_t<Ts...>> : TMPL::TypeAt<I, Ts...> {  };
 
-template<template<class...> class Sequence_t,
-         class Head_t,
-         class... Tail_t>
-struct TypeAt<0, Sequence_t<Head_t, Tail_t...>>
-{
-    using type = Head_t;
-};
-
-template<std::size_t I, class Sequence_t>
-using TypeAt_t = typename TypeAt<I, Sequence_t>::type;
+template<std::size_t I, class Seq_t>
+using TypeAt_t = typename TypeAt<I, Seq_t>::type;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Index Of
 ///////////////////////////////////////////////////////////////////////////////
 
-template<std::size_t I, class T, class Sequence_t>
+template<class T, class Seq_t>
 struct IndexOf;
 
-template<std::size_t I,
-         class T,
-         template<class...> class Sequence_t,
-         class Head_t,
-         class... Tail_t>
-struct IndexOf<I, T, Sequence_t<Head_t, Tail_t...>>
-: std::conditional_t<std::is_same_v<T, Head_t>,
-                     std::integral_constant<std::size_t, I>,
-                     IndexOf<I + 1, T, Sequence_t<Tail_t...>>>
-{
-    
-};
+template<class T, template<class...> class Seq_t, class... Ts>
+struct IndexOf<T, Seq_t<Ts...>> : TMPL::IndexOf<T, Ts...> {  };
 
-template<class T, class Sequence_t>
-constexpr static std::size_t IndexOf_v { IndexOf<0, T, Sequence_t>::value };
+template<class T, class Seq_t>
+constexpr static inline auto IndexOf_v { IndexOf<T, Seq_t>::value };
 
 ///////////////////////////////////////////////////////////////////////////////
 // Size
 ///////////////////////////////////////////////////////////////////////////////
 
-template<class Sequence_t>
+template<class Seq_t>
 struct Size;
 
-template<template <class...> class Sequence_t, class... Types_t>
-struct Size<Sequence_t<Types_t...>>
+template<template <class...> class Seq_t, class... Types_t>
+struct Size<Seq_t<Types_t...>>
+    : std::integral_constant<std::size_t, sizeof...(Types_t)> {  };
+
+template<class Seq_t>
+constexpr static inline auto Size_v = Size<Seq_t>::value;
+
+///////////////////////////////////////////////////////////////////////////////
+// For each type on the type list
+///////////////////////////////////////////////////////////////////////////////
+
+template<class Seq_t>
+struct ForEach_t;
+
+template<template<class...> class Seq_t>
+struct ForEach_t<Seq_t<>>
 {
-    using size = std::integral_constant<std::size_t, sizeof...(Types_t)>;
+    template<class Callable_t, class... Args_t>
+    constexpr static auto
+    Do([[maybe_unused]]Callable_t&& callable, [[maybe_unused]]Args_t&&... args)
+    -> void {  }
 };
 
-template<class Sequence_t>
-constexpr inline std::size_t Size_v = Size<Sequence_t>::size::value;
+template<template<class...>class Seq_t, class Head_t, class... Tail_t>
+struct ForEach_t<Seq_t<Head_t, Tail_t...>>
+{
+    template<class Callable_t, class... Args_t>
+    constexpr static auto
+    Do(Callable_t&& callable, Args_t&&... args)
+    -> void
+    {
+        callable.template operator()<Head_t>(std::forward<Args_t>(args)...);
+        ForEach_t<Seq_t<Tail_t...>>::Do(std::forward<Callable_t>(callable),
+                                          std::forward<Args_t>(args)...);
+    }
+};
 
 ///////////////////////////////////////////////////////////////////////////////
 // Concatenate Type Lists
 ///////////////////////////////////////////////////////////////////////////////
 
-template<class FirstTypeList_t, class SecondTypeList_t>
-struct TypeListCatIMPL;
+template<class Seq1_t, class Seq2_t>
+struct ConCatIMPL;
 
-template<template <class...> class FirstTypeList_t, class... FirstTypes_t,
-         template <class...> class SecondTypeList_t, class... SecondTypes_t>
-struct TypeListCatIMPL<FirstTypeList_t<FirstTypes_t...>,
-                       SecondTypeList_t<SecondTypes_t...>>
+template<template <class...> class Seq1_t, class... Ts,
+         template <class...> class Seq2_t, class... Us>
+struct ConCatIMPL<Seq1_t<Ts...>, Seq2_t<Us...>>
 {
-    using type = TypeList_t<FirstTypes_t..., SecondTypes_t...>;
+    using type = TypeList_t<Ts..., Us...>;
 };
 
-template<class FirstTList_t, class SecondTList_t>
-using TypeListCatIMPL_t = typename TypeListCatIMPL<FirstTList_t,
-                                                   SecondTList_t>::type;
+template<class Seq1_t, class Seq2_t>
+using ConCatIMPL_t = typename ConCatIMPL<Seq1_t, Seq2_t>::type;
 
-template<class... TListTypes_t>
+template<class... Seqs_t>
 struct TypeListCat;
 
-template<template<class...> class TList_t, class... Types>
-struct TypeListCat<TList_t<Types...>>
+template<template<class...> class Seq_t, class... Types>
+struct TypeListCat<Seq_t<Types...>>
 {
-    using type = TypeList_t<Types...>;
+    using type = Seq_t<Types...>;
 };
 
-template<class FirstTList_t, class SecondTList_t>
-struct TypeListCat<FirstTList_t, SecondTList_t>
-{
-    using type = TypeListCatIMPL_t<FirstTList_t, SecondTList_t>;
-};
+template<class Seq1_t, class Seq2_t>
+struct TypeListCat<Seq1_t, Seq2_t> : ConCatIMPL<Seq1_t, Seq2_t> {  };
 
 template<class First_t, class Second_t, class... Rest_t>
 struct TypeListCat<First_t, Second_t, Rest_t...>
-: TypeListCat<TypeListCatIMPL_t<First_t, Second_t>, Rest_t...>
-{  };
+    : TypeListCat<ConCatIMPL_t<First_t, Second_t>, Rest_t...> {  };
 
-template<class... TListTypes_t>
-using TypeListCat_t = typename TypeListCat<TListTypes_t...>::type;
+template<class... Seqs_t>
+using TypeListCat_t = typename TypeListCat<Seqs_t...>::type;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Pass types as template argument
 ///////////////////////////////////////////////////////////////////////////////
 
-template<class...> struct TypeListExtractor_t;
+template<class...> struct Unpacker_t;
 
-template<template<class...> class TList_t, class... Args_t>
-struct TypeListExtractor_t<TList_t<Args_t...>>
+template<template<class...> class Seq_t, class... Args_t>
+struct Unpacker_t<Seq_t<Args_t...>>
 {
     template<class Functor_t, class... FArgs_t>
-    using Functor_Return_t = decltype(
+    using FunctorReturn_t = decltype(
             std::declval<Functor_t>().template
                 operator()<Args_t...>(std::declval<FArgs_t>()...));
 
     template<class Functor_t, class... FArgs_t>
     constexpr static auto
-    invoke_functor(FArgs_t&&... args)
-    -> Functor_Return_t<Functor_t, FArgs_t...>
+    Call(Functor_t&& callable, FArgs_t&&... args)
+    -> FunctorReturn_t<Functor_t, FArgs_t...>
     {
-        return Functor_t{}.template
+        return callable.template
             operator()<Args_t...>(std::forward<FArgs_t>(args)...);
     }
 };
@@ -144,42 +148,54 @@ struct TypeListExtractor_t<TList_t<Args_t...>>
 // Type list with unique types
 ///////////////////////////////////////////////////////////////////////////////
 
-//TODO: Understand this
+template<typename T> struct TypeIdentity { using type = T; };
+template<typename T> using TypeIdentity_t = typename TypeIdentity<T>::type;
 
-template<typename T>
-struct TypeIdentity
-{
-  using type = T;
-};
+template <typename SeqOut_t, typename... Ts>
+struct UniqueTypesIMPL : TypeIdentity<SeqOut_t> { };
 
-template <typename T, typename... Ts>
-struct UniqueTypesContainerIMPL : TypeIdentity<T> { };
-
-template <template<class...> class TypesContainer_t,
+template <template<class...> class SeqOut_t,
           typename... Ts,
           typename U,
           typename... Us>
-struct UniqueTypesContainerIMPL<TypesContainer_t<Ts...>, U, Us...>
-    : std::conditional_t<
-                         (std::is_same_v<U, Ts> || ...)
-                         , UniqueTypesContainerIMPL<TypesContainer_t<Ts...>,
-                                                    Us...>
-                         , UniqueTypesContainerIMPL<TypesContainer_t<Ts..., U>,
-                                                    Us...>
-                        >
-{ };
+struct UniqueTypesIMPL<SeqOut_t<Ts...>, U, Us...>
+    : std::conditional_t<(std::is_same_v<U, Ts> || ...)
+                         , UniqueTypesIMPL<SeqOut_t<Ts...>, Us...>
+                         , UniqueTypesIMPL<SeqOut_t<Ts..., U>, Us...>> {  };
 
-template <class TypesContainer_t>
-struct UniqueTypesContainer;
+template <class Seq_t>
+struct UniqueTypes;
 
-template <template<class...>class TypesContainer_t, typename... Ts>
-struct UniqueTypesContainer<TypesContainer_t<Ts...>>
-: public UniqueTypesContainerIMPL<TypesContainer_t<>, Ts...>
-{ };
+template <template<class...>class Seq_t, typename... Ts>
+struct UniqueTypes<Seq_t<Ts...>> : public UniqueTypesIMPL<Seq_t<>, Ts...> { };
 
-template <class TypesContainer_t>
-using UniqueTypesContainer_t =
-typename UniqueTypesContainer<TypesContainer_t>::type;
+template <class Seq_t>
+using UniqueTypes_t = typename UniqueTypes<Seq_t>::type;
+
+///////////////////////////////////////////////////////////////////////////////
+// Substract a element of the sequence 
+///////////////////////////////////////////////////////////////////////////////
+
+template<class SeqOut_t, class... Ts>
+struct RemoveTypesIMPL
+{
+    using type = SeqOut_t;
+};
+
+template<template<class...> class SeqOut_t, class... Ts,
+         template<class...> class SeqA_t, class A, class... As,
+         template<class...> class SeqB_t, class... Bs>
+struct RemoveTypesIMPL<SeqOut_t<Ts...>, SeqA_t<A, As...>, SeqB_t<Bs...>>
+    : std::conditional_t<(std::is_same_v<A, Bs> || ...),
+                         RemoveTypesIMPL<SeqOut_t<Ts...>, SeqA_t<As...>, SeqB_t<Bs...>>,
+                         RemoveTypesIMPL<SeqOut_t<Ts..., A>, SeqA_t<As...>, SeqB_t<Bs...>>> {  };
+
+template<class Seq1_t, class Seq2_t>
+struct RemoveTypes
+    : RemoveTypesIMPL<TMPL::TypeList_t<>, Seq1_t, Seq2_t> {  };
+
+template<class Seq1_t, class Seq2_t>
+using RemoveTypes_t = typename RemoveTypes<Seq1_t, Seq2_t>::type;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Ignore order compare type list 
@@ -190,11 +206,10 @@ struct TypeCounter;
 
 template <typename T, template<class...> class Seq_t, typename ... Ts>
 struct TypeCounter<T, Seq_t<Ts...>>
-: std::integral_constant<std::size_t, (std::is_same_v<T, Ts> + ...)>
-{  };
+    : std::integral_constant<std::size_t, (std::is_same_v<T, Ts> + ...)> {  };
 
-template <typename T, typename Sequence_t>
-inline constexpr std::size_t TypeCounter_v = TypeCounter<T, Sequence_t>::value;
+template <typename T, typename Seq_t>
+constexpr static inline std::size_t TypeCounter_v { TypeCounter<T, Seq_t>::value };
 
 template <typename FirstSeq_t, typename SecondSeq_t, std::size_t... Is>
 constexpr bool IEqualTypes(std::index_sequence<Is...>)
@@ -216,4 +231,6 @@ constexpr bool IEqualTypes()
                           SecondSeq_t>(std::make_index_sequence<s1>());
 }
 
-} // namespace TMP
+} // namespace Sequence
+
+} // namespace TMPL
