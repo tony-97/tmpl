@@ -60,7 +60,7 @@ struct IndexOfIMPL;
 
 template<std::size_t I, class T, class U, class... Us>
 struct IndexOfIMPL<I, T, U, Us...>
-    : std::conditional<std::is_same_v<T, U>
+    : std::conditional_t<std::is_same_v<T, U>
                        , std::integral_constant<std::size_t, I>
                        , IndexOfIMPL<I + 1, T, Us...>> {  };
 
