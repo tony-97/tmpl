@@ -81,7 +81,9 @@ template<class T0, class T1, class ...Tn>
 struct AreUnique<T0, T1, Tn...>
     : std::bool_constant<not std::disjunction_v<std::is_same<T0, T1>,
                                                 std::is_same<T0, Tn>...,
-                                                std::is_same<T1, Tn>...>> {  };
+                                                std::is_same<T1, Tn>...,
+                                                std::bool_constant<!AreUnique<Tn...>::value>>>
+                                               {  };
 
 template<class T>
 struct AreUnique<T> : public std::true_type {  };
