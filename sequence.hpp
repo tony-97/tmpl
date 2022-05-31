@@ -13,6 +13,34 @@ namespace Sequence
 {
 
 ///////////////////////////////////////////////////////////////////////////////
+// Pack the types to antoher list
+///////////////////////////////////////////////////////////////////////////////
+template<class T, class Seq_t>
+struct ConvertTo;
+
+template<template<class...> class T, template<class...> class Seq_t, class... Ss>
+struct ConvertTo<T<>, Seq_t<Ss...>>
+{
+    using type = T<Ss...>;
+};
+
+template<class T, class Seq_t>
+using ConvertTo_t = typename ConvertTo<T, Seq_t>::type;
+
+///////////////////////////////////////////////////////////////////////////////
+// Is Unique types
+///////////////////////////////////////////////////////////////////////////////
+
+template<class Seq_t>
+struct IsUnique;
+
+template<template<class... >class Seq_t, class... Ts>
+struct IsUnique<Seq_t<Ts...>> : TMPL::AreUnique<Ts...> {  };
+
+template<class Seq_t>
+constexpr static inline auto IsUnique_v { IsUnique<Seq_t>::value };
+
+///////////////////////////////////////////////////////////////////////////////
 // Type at index
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -51,6 +79,19 @@ struct Size<Seq_t<Types_t...>>
 
 template<class Seq_t>
 constexpr static inline auto Size_v = Size<Seq_t>::value;
+
+///////////////////////////////////////////////////////////////////////////////
+// Check if types are unique
+///////////////////////////////////////////////////////////////////////////////
+
+template<class Seq_t>
+struct AreUnique;
+
+template<template<class...> class Seq_t, class... Ts>
+struct AreUnique<Seq_t<Ts...>> : TMPL::AreUnique<Ts...> {  };
+
+template<class Seq_t>
+constexpr static inline auto AreUnique_v { AreUnique<Seq_t>::value };
 
 ///////////////////////////////////////////////////////////////////////////////
 // For each type on the type list
@@ -124,13 +165,13 @@ using SeqCat_t = typename SeqCat<Seqs_t...>::type;
 
 template<class...> struct Unpacker_t;
 
-template<template<class...> class Seq_t, class... Args_t>
-struct Unpacker_t<Seq_t<Args_t...>>
+template<template<class...> class Seq_t, class... TArgs_t>
+struct Unpacker_t<Seq_t<TArgs_t...>>
 {
     template<class Functor_t, class... FArgs_t>
     using FunctorReturn_t = decltype(
             std::declval<Functor_t>().template
-                operator()<Args_t...>(std::declval<FArgs_t>()...));
+                operator()<TArgs_t...>(std::declval<FArgs_t>()...));
 
     template<class Functor_t, class... FArgs_t>
     constexpr static auto
@@ -138,7 +179,7 @@ struct Unpacker_t<Seq_t<Args_t...>>
     -> FunctorReturn_t<Functor_t, FArgs_t...>
     {
         return callable.template
-            operator()<Args_t...>(std::forward<FArgs_t>(args)...);
+            operator()<TArgs_t...>(std::forward<FArgs_t>(args)...);
     }
 };
 
