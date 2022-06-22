@@ -100,26 +100,15 @@ constexpr static inline auto AreUnique_v { AreUnique<Seq_t>::value };
 template<class Seq_t>
 struct ForEach_t;
 
-template<template<class...> class Seq_t>
-struct ForEach_t<Seq_t<>>
-{
-    template<class Callable_t, class... Args_t>
-    constexpr static auto
-    Do([[maybe_unused]]Callable_t&& callable, [[maybe_unused]]Args_t&&... args)
-    -> void {  }
-};
-
-template<template<class...>class Seq_t, class Head_t, class... Tail_t>
-struct ForEach_t<Seq_t<Head_t, Tail_t...>>
+template<template<class...>class Seq_t, class... Ts>
+struct ForEach_t<Seq_t<Ts...>>
 {
     template<class Callable_t, class... Args_t>
     constexpr static auto
     Do(Callable_t&& callable, Args_t&&... args)
     -> void
     {
-        callable.template operator()<Head_t>(std::forward<Args_t>(args)...);
-        ForEach_t<Seq_t<Tail_t...>>::Do(std::forward<Callable_t>(callable),
-                                          std::forward<Args_t>(args)...);
+        (callable.template operator()<Ts>(std::forward<Args_t>(args)...), ...);
     }
 };
 
