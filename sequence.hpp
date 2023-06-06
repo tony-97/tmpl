@@ -15,16 +15,16 @@ namespace Sequence
 ///////////////////////////////////////////////////////////////////////////////
 // Pack the types to antoher list
 ///////////////////////////////////////////////////////////////////////////////
-template<class T, class Seq_t>
+template<template<class...> class T, class Seq_t>
 struct ConvertTo;
 
 template<template<class...> class T, template<class...> class Seq_t, class... Ss>
-struct ConvertTo<T<>, Seq_t<Ss...>>
+struct ConvertTo<T, Seq_t<Ss...>>
 {
     using type = T<Ss...>;
 };
 
-template<class T, class Seq_t>
+template<template<class...> class T, class Seq_t>
 using ConvertTo_t = typename ConvertTo<T, Seq_t>::type;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -113,40 +113,56 @@ struct ForEach_t<Seq_t<Ts...>>
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// Map the types of the Type Lists
+///////////////////////////////////////////////////////////////////////////////
+
+template<class Seq_t, template<class> class Apply_t>
+struct Map;
+
+template<template<class...>class Seq_t, class... Ts, template<class> class Apply_t>
+struct Map<Seq_t<Ts...>, Apply_t>
+{
+    using type = Seq_t<typename Apply_t<Ts>::type...>;
+};
+
+template<class Seq_t, template<class> class Apply_t>
+using Map_t = typename Map<Seq_t, Apply_t>::type;
+
+///////////////////////////////////////////////////////////////////////////////
 // Concatenate Type Lists
 ///////////////////////////////////////////////////////////////////////////////
 
 template<class Seq1_t, class Seq2_t>
-struct SeqCatIMPL;
+struct CatIMPL;
 
 template<template <class...> class Seq1_t, class... Ts,
          template <class...> class Seq2_t, class... Us>
-struct SeqCatIMPL<Seq1_t<Ts...>, Seq2_t<Us...>>
+struct CatIMPL<Seq1_t<Ts...>, Seq2_t<Us...>>
 {
     using type = TMPL::TypeList_t<Ts..., Us...>;
 };
 
 template<class Seq1_t, class Seq2_t>
-using SeqCatIMPL_t = typename SeqCatIMPL<Seq1_t, Seq2_t>::type;
+using CatIMPL_t = typename CatIMPL<Seq1_t, Seq2_t>::type;
 
 template<class... Seqs_t>
-struct SeqCat;
+struct Cat;
 
 template<template<class...> class Seq_t, class... Types>
-struct SeqCat<Seq_t<Types...>>
+struct Cat<Seq_t<Types...>>
 {
     using type = Seq_t<Types...>;
 };
 
 template<class Seq1_t, class Seq2_t>
-struct SeqCat<Seq1_t, Seq2_t> : SeqCatIMPL<Seq1_t, Seq2_t> {  };
+struct Cat<Seq1_t, Seq2_t> : CatIMPL<Seq1_t, Seq2_t> {  };
 
 template<class First_t, class Second_t, class... Rest_t>
-struct SeqCat<First_t, Second_t, Rest_t...>
-    : SeqCat<SeqCatIMPL_t<First_t, Second_t>, Rest_t...> {  };
+struct Cat<First_t, Second_t, Rest_t...>
+    : Cat<CatIMPL_t<First_t, Second_t>, Rest_t...> {  };
 
 template<class... Seqs_t>
-using SeqCat_t = typename SeqCat<Seqs_t...>::type;
+using Cat_t = typename Cat<Seqs_t...>::type;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Pass types as template argument
