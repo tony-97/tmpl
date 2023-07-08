@@ -12,15 +12,11 @@ namespace TMPL
 template<typename T, typename ...Ts>
 struct IsOneOf;
 
-template<typename T, typename ...Ts>
-struct IsOneOf
-    : std::bool_constant<std::disjunction_v<std::is_same<T, Ts>...>> {  };
-
 template<typename T, template<class...> class U, class... Us>
-struct IsOneOf<T, U<Us...>> : IsOneOf<T, Us...> {  };
+struct IsOneOf<T, U<Us...>> : std::bool_constant<std::disjunction_v<std::is_same<T, Us>...>> {  };
 
-template<typename T, typename ...Ts>
-constexpr static inline  bool IsOneOf_v { IsOneOf<T, Ts...>::value };
+template<typename T, typename U>
+constexpr static inline  bool IsOneOf_v { IsOneOf<T, U>::value };
 
 template<class T, class U>
 struct IsSubsetOf;
