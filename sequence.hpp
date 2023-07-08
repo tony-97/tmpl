@@ -116,16 +116,16 @@ struct ForEach_t<Seq_t<Ts...>>
 // Map the types of the Type Lists
 ///////////////////////////////////////////////////////////////////////////////
 
-template<class Seq_t, template<class> class Apply_t>
+template<class Seq_t, template<class...> class Apply_t>
 struct Map;
 
-template<template<class...>class Seq_t, class... Ts, template<class> class Apply_t>
+template<template<class...>class Seq_t, class... Ts, template<class...> class Apply_t>
 struct Map<Seq_t<Ts...>, Apply_t>
 {
     using type = Seq_t<typename Apply_t<Ts>::type...>;
 };
 
-template<class Seq_t, template<class> class Apply_t>
+template<class Seq_t, template<class...> class Apply_t>
 using Map_t = typename Map<Seq_t, Apply_t>::type;
 
 ///////////////////////////////////////////////////////////////////////////////
