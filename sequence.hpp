@@ -16,42 +16,42 @@ namespace Sequence
 // Pack the types to antoher list
 ///////////////////////////////////////////////////////////////////////////////
 template<template<class...> class T, class Seq_t>
-struct ConvertTo;
+struct As;
 
 template<template<class...> class T, template<class...> class Seq_t, class... Ss>
-struct ConvertTo<T, Seq_t<Ss...>>
+struct As<T, Seq_t<Ss...>>
 {
     using type = T<Ss...>;
 };
 
 template<template<class...> class T, class Seq_t>
-using ConvertTo_t = typename ConvertTo<T, Seq_t>::type;
+using As_t = typename As<T, Seq_t>::type;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Is Unique types
 ///////////////////////////////////////////////////////////////////////////////
 
 template<class Seq_t>
-struct IsUnique;
+struct IsSet;
 
 template<template<class... >class Seq_t, class... Ts>
-struct IsUnique<Seq_t<Ts...>> : TMPL::AreUnique<Ts...> {  };
+struct IsSet<Seq_t<Ts...>> : TMPL::AreUnique<Ts...> {  };
 
 template<class Seq_t>
-constexpr static inline auto IsUnique_v { IsUnique<Seq_t>::value };
+constexpr static inline auto IsSet_v { IsSet<Seq_t>::value };
 
 ///////////////////////////////////////////////////////////////////////////////
 // Type at index
 ///////////////////////////////////////////////////////////////////////////////
 
 template<std::size_t I, class Seq_t>
-struct TypeAt;
+struct Element;
 
 template<std::size_t I, template<class...> class Seq_t, class... Ts>
-struct TypeAt<I, Seq_t<Ts...>> : TMPL::TypeAt<I, Ts...> {  };
+struct Element<I, Seq_t<Ts...>> : TMPL::TypeAt<I, Ts...> {  };
 
 template<std::size_t I, class Seq_t>
-using TypeAt_t = typename TypeAt<I, Seq_t>::type;
+using Element_t = typename Element<I, Seq_t>::type;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Index Of
@@ -79,19 +79,6 @@ struct Size<Seq_t<Types_t...>>
 
 template<class Seq_t>
 constexpr static inline auto Size_v = Size<Seq_t>::value;
-
-///////////////////////////////////////////////////////////////////////////////
-// Check if types are unique
-///////////////////////////////////////////////////////////////////////////////
-
-template<class Seq_t>
-struct AreUnique;
-
-template<template<class...> class Seq_t, class... Ts>
-struct AreUnique<Seq_t<Ts...>> : TMPL::AreUnique<Ts...> {  };
-
-template<class Seq_t>
-constexpr static inline auto AreUnique_v { AreUnique<Seq_t>::value };
 
 ///////////////////////////////////////////////////////////////////////////////
 // For each type on the type list
@@ -192,36 +179,33 @@ struct Unpacker_t<Seq_t<TArgs_t...>>
 // Type list with unique types
 ///////////////////////////////////////////////////////////////////////////////
 
-template<typename T> struct TypeIdentity { using type = T; };
-template<typename T> using TypeIdentity_t = typename TypeIdentity<T>::type;
-
 template <typename SeqOut_t, typename... Ts>
-struct UniqueTypesIMPL : TypeIdentity<SeqOut_t> { };
+struct MakeSetIMPL : std::type_identity<SeqOut_t> { };
 
 template <template<class...> class SeqOut_t,
           typename... Ts,
           typename U,
           typename... Us>
-struct UniqueTypesIMPL<SeqOut_t<Ts...>, U, Us...>
-    : std::conditional_t<(std::is_same_v<U, Ts> || ...)
-                         , UniqueTypesIMPL<SeqOut_t<Ts...>, Us...>
-                         , UniqueTypesIMPL<SeqOut_t<Ts..., U>, Us...>> {  };
+struct MakeSetIMPL<SeqOut_t<Ts...>, U, Us...>
+    : std::conditional_t<std::disjunction_v<std::is_same<U, Ts>...>
+                         , MakeSetIMPL<SeqOut_t<Ts...>, Us...>
+                         , MakeSetIMPL<SeqOut_t<Ts..., U>, Us...>> {  };
 
 template <class Seq_t>
-struct UniqueTypes;
+struct MakeSet;
 
 template <template<class...>class Seq_t, typename... Ts>
-struct UniqueTypes<Seq_t<Ts...>> : public UniqueTypesIMPL<Seq_t<>, Ts...> { };
+struct MakeSet<Seq_t<Ts...>> : public MakeSetIMPL<Seq_t<>, Ts...> { };
 
 template <class Seq_t>
-using UniqueTypes_t = typename UniqueTypes<Seq_t>::type;
+using MakeSet_t = typename MakeSet<Seq_t>::type;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Substract a element of the sequence 
 ///////////////////////////////////////////////////////////////////////////////
 
 template<class SeqOut_t, class... Ts>
-struct RemoveTypesIMPL
+struct DifferenceIMPL
 {
     using type = SeqOut_t;
 };
@@ -229,38 +213,41 @@ struct RemoveTypesIMPL
 template<template<class...> class SeqOut_t, class... Ts,
          template<class...> class SeqA_t, class A, class... As,
          template<class...> class SeqB_t, class... Bs>
-struct RemoveTypesIMPL<SeqOut_t<Ts...>, SeqA_t<A, As...>, SeqB_t<Bs...>>
+struct DifferenceIMPL<SeqOut_t<Ts...>, SeqA_t<A, As...>, SeqB_t<Bs...>>
     : std::conditional_t<(std::is_same_v<A, Bs> || ...),
-                         RemoveTypesIMPL<SeqOut_t<Ts...>, SeqA_t<As...>, SeqB_t<Bs...>>,
-                         RemoveTypesIMPL<SeqOut_t<Ts..., A>, SeqA_t<As...>, SeqB_t<Bs...>>> {  };
+                         DifferenceIMPL<SeqOut_t<Ts...>, SeqA_t<As...>, SeqB_t<Bs...>>,
+                         DifferenceIMPL<SeqOut_t<Ts..., A>, SeqA_t<As...>, SeqB_t<Bs...>>> {  };
 
 template<class Seq1_t, class Seq2_t>
-struct RemoveTypes
-    : RemoveTypesIMPL<TMPL::TypeList_t<>, Seq1_t, Seq2_t> {  };
+struct Difference
+    : DifferenceIMPL<TMPL::TypeList_t<>, Seq1_t, Seq2_t> {  };
 
 template<class Seq1_t, class Seq2_t>
-using RemoveTypes_t = typename RemoveTypes<Seq1_t, Seq2_t>::type;
+using Difference_t = typename Difference<Seq1_t, Seq2_t>::type;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Ignore order compare type list 
 ///////////////////////////////////////////////////////////////////////////////
 
 template <typename T, typename Tuple>
-struct TypeCounter;
+struct Count;
 
 template <typename T, template<class...> class Seq_t, typename ... Ts>
-struct TypeCounter<T, Seq_t<Ts...>>
+struct Count<T, Seq_t<Ts...>>
     : std::integral_constant<std::size_t, (std::is_same_v<T, Ts> + ...)> {  };
 
 template <typename T, typename Seq_t>
-constexpr static inline std::size_t TypeCounter_v { TypeCounter<T, Seq_t>::value };
+constexpr static inline std::size_t Count_v { Count<T, Seq_t>::value };
 
+/*! TODO: need to be in namespace set, and rename as is_same
+ *  \todo need to be in namespace set
+ */
 template <typename FirstSeq_t, typename SecondSeq_t, std::size_t... Is>
 constexpr bool IEqualTypes(std::index_sequence<Is...>)
 {
     return (...
-            && (   TypeCounter_v<TypeAt<Is, FirstSeq_t>, FirstSeq_t>
-                == TypeCounter_v<TypeAt<Is, FirstSeq_t>, SecondSeq_t>)
+            && (   Count_v<TypeAt<Is, FirstSeq_t>, FirstSeq_t>
+                == Count_v<TypeAt<Is, FirstSeq_t>, SecondSeq_t>)
            );
 }
 
@@ -274,6 +261,32 @@ constexpr bool IEqualTypes()
            && IEqualTypes<FirstSeq_t,
                           SecondSeq_t>(std::make_index_sequence<s1>());
 }
+
+///////////////////////////////////////////////////////////////////////////////
+// Contains
+///////////////////////////////////////////////////////////////////////////////
+
+template<typename T, typename U>
+struct Contains;
+
+template<typename T, template<class...> class U, class... Us>
+struct Contains<T, U<Us...>> : TMPL::IsOneOf<T, Us...> {  };
+
+template<typename T, typename U>
+constexpr static inline  bool Contains_v { Contains<T, U>::value };
+
+template<class T, class U>
+struct IsSubsetOf;
+
+template<template<class...> class T, template<class...> class U, class... Ts>
+struct IsSubsetOf<T<>, U<Ts...>> : std::true_type {  };
+
+template<template<class...> class T, class... Types, class U>
+struct IsSubsetOf<T<Types...>, U>
+    : std::conjunction<Contains<Types, U>...> {  };
+
+template<class T, class U>
+constexpr static inline bool IsSubsetOf_v { IsSubsetOf<T, U>::value };
 
 } // namespace Sequence
 

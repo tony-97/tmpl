@@ -5,31 +5,12 @@
 namespace TMPL
 {
 
-///////////////////////////////////////////////////////////////////////////////
-// Contains
-///////////////////////////////////////////////////////////////////////////////
+template<typename T, class... Us>
+struct IsOneOf : std::disjunction<std::is_same<T, Us>...> {  };
 
-template<typename T, typename ...Ts>
-struct IsOneOf;
+template<typename T, class... Us>
+constexpr static inline  bool IsOneOf_v { IsOneOf<T, Us...>::value };
 
-template<typename T, template<class...> class U, class... Us>
-struct IsOneOf<T, U<Us...>> : std::bool_constant<std::disjunction_v<std::is_same<T, Us>...>> {  };
-
-template<typename T, typename U>
-constexpr static inline  bool IsOneOf_v { IsOneOf<T, U>::value };
-
-template<class T, class U>
-struct IsSubsetOf;
-
-template<template<class...> class T, template<class...> class U, class... Ts>
-struct IsSubsetOf<T<>, U<Ts...>> : std::true_type {  };
-
-template<template<class...> class T, class... Types, class U>
-struct IsSubsetOf<T<Types...>, U>
-    : std::bool_constant<std::conjunction_v<IsOneOf<Types, U>...>> {  };
-
-template<class T, class U>
-constexpr static inline bool IsSubsetOf_v { IsSubsetOf<T, U>::value };
 
 ///////////////////////////////////////////////////////////////////////////////
 // Type at

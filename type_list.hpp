@@ -1,10 +1,5 @@
 #pragma once
 
-#include "tmpl.hpp"
-
-#include <type_traits>
-#include <utility>
-
 namespace TMPL
 {
 
