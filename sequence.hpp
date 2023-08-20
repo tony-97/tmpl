@@ -135,6 +135,12 @@ using CatIMPL_t = typename CatIMPL<Seq1_t, Seq2_t>::type;
 template<class... Seqs_t>
 struct Cat;
 
+template<>
+struct Cat<>
+{
+    using type = TypeList_t<>;
+};
+
 template<template<class...> class Seq_t, class... Types>
 struct Cat<Seq_t<Types...>>
 {
