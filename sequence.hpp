@@ -157,6 +157,30 @@ struct Cat<First_t, Second_t, Rest_t...>
 template<class... Seqs_t>
 using Cat_t = typename Cat<Seqs_t...>::type;
 
+
+///////////////////////////////////////////////////////////////////////////////
+// Filter Type Lists
+///////////////////////////////////////////////////////////////////////////////
+
+template<class Seq_t, template<class> class Predicate_t>
+struct Filter;
+
+template<template<class...> class Seq_t, template<class> class Predicate_t>
+struct Filter<Seq_t<>, Predicate_t> {
+    using type = TypeList_t<>;
+};
+
+template<template<class...> class Seq_t, class T, class... Ts, template<class> class Predicate_t>
+struct Filter<Seq_t<T, Ts...>, Predicate_t> {
+    using type = std::conditional_t<
+        Predicate_t<T>::value,
+        Cat_t<Seq_t<T>, typename Filter<Seq_t<Ts...>, Predicate_t>::type>,
+        typename Filter<Seq_t<Ts...>, Predicate_t>::type>;
+};
+
+template<class Seq_t, template<class> class Predicate_t>
+using Filter_t = typename Filter<Seq_t, Predicate_t>::type;
+
 ///////////////////////////////////////////////////////////////////////////////
 // Pass types as template argument
 ///////////////////////////////////////////////////////////////////////////////
