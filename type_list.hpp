@@ -1,8 +1,8 @@
 #pragma once
 
-namespace TMPL
-{
+namespace TMPL {
 
-template<class... Args_t> struct TypeList_t {  };
+template<class... Args_t> struct TypeList_t
+{};
 
 } // namespace TMPL
